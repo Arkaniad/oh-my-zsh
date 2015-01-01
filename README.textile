@@ -1,83 +1,92 @@
-My spin on oh-my-zsh. For the original, check it out "here":https://www.github.com/robbyrussel/oh-my-zsh/
+# Check for updates on initial load...
+if [ "$DISABLE_AUTO_UPDATE" != "true" ]; then
+  env ZSH=$ZSH DISABLE_UPDATE_PROMPT=$DISABLE_UPDATE_PROMPT zsh -f $ZSH/tools/check_for_upgrade.sh
+fi
 
-h2. Setup
+# Initializes Oh My Zsh
 
-@oh-my-zsh@ should work with any recent release of "zsh":http://www.zsh.org/, the minimum recommended version is 4.3.9.
+# add a function path
+fpath=($ZSH/functions $ZSH/completions $fpath)
 
-h3. The automatic installer... (do you trust me?)
+# Set ZSH_CUSTOM to the path where your custom config files
+# and plugins exists, or else we will use the default custom/
+if [[ -z "$ZSH_CUSTOM" ]]; then
+    ZSH_CUSTOM="$ZSH/custom"
+fi
 
-You can install this via the command line with either `curl` or `wget`.
-
-h4. via `curl`
-
-@curl -L https://github.com/Arkaniad/oh-my-zsh/raw/master/tools/install.sh | sh@
-
-h4. via `wget`
-
-@wget --no-check-certificate https://github.com/Arkaniad/oh-my-zsh/raw/master/tools/install.sh -O - | sh@
-
-h3. The manual way
-
-
-1. Clone the repository
-
-  @git clone git://github.com/Arkaniad/oh-my-zsh.git ~/.oh-my-zsh@
-
-2. Create a new zsh config by copying the zsh template we've provided.
-
-  *NOTE*: If you already have a ~/.zshrc file, you should back it up. @cp ~/.zshrc ~/.zshrc.orig@ in case you want to go back to your original settings.
-
-  @cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc@
-
-3. Set zsh as your default shell:
-
-  @chsh -s /bin/zsh@
-
-4. Start / restart zsh (open a new terminal is easy enough...)
-
-h3. Problems?
-
-You _might_ need to modify your PATH in ~/.zshrc if you're not able to find some commands after switching to _Oh My Zsh_.
-
-h2. Usage
-
-* enable the plugins you want in your @~/.zshrc@ (take a look at @plugins/@ to see what's possible)
-** example: @plugins=(git osx ruby)@
-* Theme support: Change the @ZSH_THEME@ environment variable in @~/.zshrc@.
-** Take a look at the "current themes":https://wiki.github.com/robbyrussell/oh-my-zsh/themes that come bundled with _Oh My Zsh_.
-* much much more...  take a look at @lib/@ what _Oh My Zsh_ offers...
-
-h2. Useful
-
-the "refcard":http://www.bash2zsh.com/zsh_refcard/refcard.pdf is pretty tasty for tips.
-
-h3. Customization
-
-If you want to override any of the default behavior, just add a new file (ending in @.zsh@) into the @custom/@ directory.
-If you have many functions which go well together you can put them as a *.plugin.zsh file in the @custom/plugins/@ directory and then enable this plugin.
-If you would like to override the functionality of a plugin distributed with oh-my-zsh, create a plugin of the same name in the @custom/plugins/@ directory and it will be loaded instead of the one in @plugins/@.
+# Load all of the config files in ~/oh-my-zsh that end in .zsh
+# TIP: Add files you don't want in git to .gitignore
+for config_file ($ZSH/lib/*.zsh); do
+  custom_config_file="${ZSH_CUSTOM}/lib/${config_file:t}"
+  [ -f "${custom_config_file}" ] && config_file=${custom_config_file}
+  source $config_file
+done
 
 
-h3. Uninstalling
+is_plugin() {
+  local base_dir=$1
+  local name=$2
+  test -f $base_dir/plugins/$name/$name.plugin.zsh \
+    || test -f $base_dir/plugins/$name/_$name
+}
+# Add all defined plugins to fpath. This must be done
+# before running compinit.
+for plugin ($plugins); do
+  if is_plugin $ZSH_CUSTOM $plugin; then
+    fpath=($ZSH_CUSTOM/plugins/$plugin $fpath)
+  elif is_plugin $ZSH $plugin; then
+    fpath=($ZSH/plugins/$plugin $fpath)
+  fi
+done
 
-If you want to uninstall it, just run @uninstall_oh_my_zsh@ from the command line and it'll remove itself and revert you to bash (or your previous zsh config).
+# Figure out the SHORT hostname
+if [[ "$OSTYPE" = darwin* ]]; then
+  # OS X's $HOST changes with dhcp, etc. Use ComputerName if possible.
+  SHORT_HOST=$(scutil --get ComputerName 2>/dev/null) || SHORT_HOST=${HOST/.*/}
+else
+  SHORT_HOST=${HOST/.*/}
+fi
 
-h2. Help out!
+# Save the location of the current completion dump file.
+if [ -z "$ZSH_COMPDUMP" ]; then
+  ZSH_COMPDUMP="${ZDOTDIR:-${HOME}}/.zcompdump-${SHORT_HOST}-${ZSH_VERSION}"
+fi
 
-I'm far from being a zsh-expert and suspect there are many ways to improve. If you have ideas on how to make the configuration easier to maintain (and faster), don't hesitate to fork and send pull requests!
+# Load and run compinit
+autoload -U compinit
+compinit -i -d "${ZSH_COMPDUMP}"
 
-h3. (Don't) Send us your theme! (for now)
+# Load all of the plugins that were defined in ~/.zshrc
+for plugin ($plugins); do
+  if [ -f $ZSH_CUSTOM/plugins/$plugin/$plugin.plugin.zsh ]; then
+    source $ZSH_CUSTOM/plugins/$plugin/$plugin.plugin.zsh
+  elif [ -f $ZSH/plugins/$plugin/$plugin.plugin.zsh ]; then
+    source $ZSH/plugins/$plugin/$plugin.plugin.zsh
+  fi
+done
 
--I'm hoping to collect a bunch of themes for our command prompts. You can see existing ones in the @themes/@ directory.-
+# Load all of your custom configurations from custom/
+for config_file ($ZSH_CUSTOM/*.zsh(N)); do
+  source $config_file
+done
+unset config_file
 
-We have enough themes for the time being. Please fork the project and add on in there, you can let people know how to grab it from there. 
-
-
-
-h2. Contributors
-
-This project wouldn't exist without all of our awesome users and contributors.
-
-* "View our growing list of contributors":https://github.com/robbyrussell/oh-my-zsh/contributors
-
-Thank you so much!
+# Load the theme
+if [ "$ZSH_THEME" = "random" ]; then
+  themes=($ZSH/themes/*zsh-theme)
+  N=${#themes[@]}
+  ((N=(RANDOM%N)+1))
+  RANDOM_THEME=${themes[$N]}
+  source "$RANDOM_THEME"
+  echo "[oh-my-zsh] Random theme '$RANDOM_THEME' loaded..."
+else
+  if [ ! "$ZSH_THEME" = ""  ]; then
+    if [ -f "$ZSH_CUSTOM/$ZSH_THEME.zsh-theme" ]; then
+      source "$ZSH_CUSTOM/$ZSH_THEME.zsh-theme"
+    elif [ -f "$ZSH_CUSTOM/themes/$ZSH_THEME.zsh-theme" ]; then
+      source "$ZSH_CUSTOM/themes/$ZSH_THEME.zsh-theme"
+    else
+      source "$ZSH/themes/$ZSH_THEME.zsh-theme"
+    fi
+  fi
+fi
