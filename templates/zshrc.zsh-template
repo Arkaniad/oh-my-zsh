@@ -56,9 +56,6 @@ source $ZSH/oh-my-zsh.sh
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
-<<<<<<< HEAD
-source $ZSH/oh-my-zsh.sh
-
 # colord man pages
 man(){
   env \
@@ -72,8 +69,6 @@ man(){
       man "$@"
 }
 
-=======
->>>>>>> 66bae5a5deb7a053adfb05b38a93fe47295841eb
 # You may need to manually set your language environment
 # export LANG=en_US.UTF-8
 
