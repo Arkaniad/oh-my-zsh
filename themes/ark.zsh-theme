@@ -10,7 +10,7 @@ if which acpi &> /dev/null; then
     elif [[ "${BATTPRCNT}" -lt 15 ]]; then
       PR_BATTERY="${fg[red]}(b:${BATTPRCNT}%%)"
     elif [[ "${BATTPRCNT}" -lt 60 ]]; then
-      PR_BATTERY="${fg[yellow]}(b:${BATTTPRCNT}%%)"
+      PR_BATTERY="${fg[yellow]}(b:${BATTPRCNT}%%)"
     elif [[ "${BATTPRCNT}" -lt 100 ]]; then
       PR_BATTERY="${fg[green]}(b:${BATTPRCNT}%%)"
     else
