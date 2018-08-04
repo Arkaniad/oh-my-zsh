@@ -61,7 +61,7 @@ main() {
       exit 1
     fi
   fi
-  env git clone --depth=1 https://github.com/Arkaniad/oh-my-zsh.git $ZSH || {
+  env git clone --depth=1 https://code.isomemetric.net/Ark/oh-my-zsh.git $ZSH || {
     printf "Error: git clone of oh-my-zsh repo failed\n"
     exit 1
   }
